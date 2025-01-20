@@ -2,10 +2,12 @@ import React, { Component } from "react";
 import { connect } from "react-redux";
 import { push } from "connected-react-router";
 import * as actions from "../../store/actions";
+
 import "./Login.scss";
 import { FormattedMessage } from "react-intl";
 import { divide } from "lodash";
 import { languages } from "../../utils";
+import { handleLoginApi } from "../../services/userService";
 
 class Login extends Component {
   constructor(props) {
@@ -14,6 +16,7 @@ class Login extends Component {
       username: "",
       password: "",
       isShowPassword: false,
+      errMessage: "",
     };
   }
 
@@ -29,14 +32,32 @@ class Login extends Component {
     });
   };
 
-  handleLogin = () => {
-    console.log(
-      "username: ",
-      this.state.username,
-      " password: ",
-      this.state.password
-    );
-    console.log("all state ", this.state);
+  handleLogin = async () => {
+    this.setState({
+      errMessage: "",
+    });
+    try {
+      let data = await handleLoginApi(this.state.username, this.state.password);
+      if (data && data.errCode !== 0) {
+        this.setState({
+          errMessage: data.message,
+        });
+      }
+      if (data && data.errCode === 0) {
+        // todo
+        this.props.userLoginSuccess(data.user);
+        console.log("login successed!");
+      }
+    } catch (error) {
+      if (error.response) {
+        if (error.response.data) {
+          this.setState({
+            errMessage: error.response.data.message,
+          });
+        }
+      }
+      console.log("hoidanit", error.response);
+    }
   };
 
   handleShowHidePassword = () => {
@@ -86,6 +107,10 @@ class Login extends Component {
               </div>
             </div>
 
+            <div className="col-12" style={{ color: "red" }}>
+              {this.state.errMessage}
+            </div>
+
             <div className="col-12">
               <button
                 className="btn-login"
@@ -123,9 +148,9 @@ const mapStateToProps = (state) => {
 const mapDispatchToProps = (dispatch) => {
   return {
     navigate: (path) => dispatch(push(path)),
-    adminLoginSuccess: (adminInfo) =>
-      dispatch(actions.adminLoginSuccess(adminInfo)),
-    adminLoginFail: () => dispatch(actions.adminLoginFail()),
+    // userLoginFail: () => dispatch(actions.adminLoginFail()),
+    userLoginSuccess: (userInfor) =>
+      dispatch(actions.userLoginSuccess(userInfor)),
   };
 };
 
